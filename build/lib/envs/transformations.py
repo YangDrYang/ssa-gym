@@ -1,32 +1,64 @@
 from collections.abc import Iterable
 import numpy as np
-from numpy import sin, cos, arctan2 as atan2, arctan as atan, tan, arcsin as asin, arccos as acos, sum, pi, sqrt, radians, float64, array, power, hypot
+from numpy import (
+    sin,
+    cos,
+    arctan2 as atan2,
+    arctan as atan,
+    tan,
+    arcsin as asin,
+    arccos as acos,
+    sum,
+    pi,
+    sqrt,
+    radians,
+    float64,
+    array,
+    power,
+    hypot,
+)
 import pandas as pd
-from astropy._erfa import DAYSEC, DAS2R, DMAS2R, DPI, eform
-from astropy import _erfa as erfa
+import erfa
+from erfa import DAYSEC, DAS2R, DMAS2R, DPI, eform
 from numba import njit
 import os
 
 path = os.getcwd()
 a, f = eform(1)  # WGS84 ellipsoid parameters - semi-major axis, flattening parameter
-e = sqrt(f*(2-f))
-b = (1-f)*a
-arcsec2rad = pi/648000 # converts arc seconds to radians
-deg2rad = pi/180 # converts degrees to radians
-tau = 2*pi
+e = sqrt(f * (2 - f))
+b = (1 - f) * a
+arcsec2rad = pi / 648000  # converts arc seconds to radians
+deg2rad = pi / 180  # converts degrees to radians
+tau = 2 * pi
 
 
 def get_eops():
     """
-   This function downloads the Earth Orientation Parameters (EOPs) from the IAU sources and returns them as a pandas
-        dataframe; https://datacenter.iers.org/eop.php
+    This function downloads the Earth Orientation Parameters (EOPs) from the IAU sources and returns them as a pandas
+         dataframe; https://datacenter.iers.org/eop.php
     """
-    url = 'ftp://hpiers.obspm.fr/iers/eop/eopc04/eopc04_IAU2000.62-now'
+    url = "ftp://hpiers.obspm.fr/iers/eop/eopc04/eopc04_IAU2000.62-now"
     ds = np.DataSource(path)
     file = ds.open(url)
     array = np.genfromtxt(file, skip_header=14)
-    headers = ['Year', 'Month', 'Day', 'MJD', 'x', 'y', 'UT1-UTC', 'LOD', 'dX',
-               'dY', 'x Err', 'y Err', 'UT1-UTC Err', 'LOD Err', 'dX Err', 'dY Err']
+    headers = [
+        "Year",
+        "Month",
+        "Day",
+        "MJD",
+        "x",
+        "y",
+        "UT1-UTC",
+        "LOD",
+        "dX",
+        "dY",
+        "x Err",
+        "y Err",
+        "UT1-UTC Err",
+        "LOD Err",
+        "dX Err",
+        "dY Err",
+    ]
     eop = pd.DataFrame(data=array, index=array[:, 3], columns=headers)
     return eop
 
@@ -50,7 +82,14 @@ def utc2cel06a_parameters(t, eop, iau55=False):
         dx06 and dy06 are the CIP offsets wrt IAU 2006/2000A (mas->radians) as extrapolated from between the two
             published points before and after
     """
-    year, month, day, hour, minute, second = t.year, t.month, t.day, t.hour, t.minute, t.second
+    year, month, day, hour, minute, second = (
+        t.year,
+        t.month,
+        t.day,
+        t.hour,
+        t.minute,
+        t.second,
+    )
     # TT (MJD). */
     djmjd0, date = erfa.cal2jd(iy=year, im=month, id=day)
     jd = djmjd0 + date
@@ -69,7 +108,7 @@ def utc2cel06a_parameters(t, eop, iau55=False):
     # UT1-UTC (s). */
     dut_l = eop["UT1-UTC"][date]
     dut_h = eop["UT1-UTC"][date + 1]
-    dut1 = (dut_l * (1 - day_frac) + dut_h * day_frac)
+    dut1 = dut_l * (1 - day_frac) + dut_h * day_frac
 
     # CIP offsets wrt IAU 2006/2000A (mas->radians). */
     dx_l = eop["dX"][date]
@@ -94,15 +133,16 @@ def utc2cel06a_parameters(t, eop, iau55=False):
 
     return jd, ttb, utb, xp, dx06, yp, dy06
 
-def eraRZ(psi,array):
+
+def eraRZ(psi, array):
     s = np.sin(psi)
     c = np.cos(psi)
     a00 = c * array[0][0] + s * array[1][0]
     a01 = c * array[0][1] + s * array[1][1]
     a02 = c * array[0][2] + s * array[1][2]
-    a10 = - s * array[0][0] + c * array[1][0]
-    a11 = - s * array[0][1] + c * array[1][1]
-    a12 = - s * array[0][2] + c * array[1][2]
+    a10 = -s * array[0][0] + c * array[1][0]
+    a11 = -s * array[0][1] + c * array[1][1]
+    a12 = -s * array[0][2] + c * array[1][2]
 
     array[0][0] = a00
     array[0][1] = a01
@@ -112,6 +152,7 @@ def eraRZ(psi,array):
     array[1][2] = a12
 
     return array
+
 
 def gcrs2irts_matrix_a(t, eop):
     """
@@ -139,6 +180,7 @@ def gcrs2irts_matrix_a(t, eop):
     if len(matrix) == 1:
         matrix = matrix[0]
     return matrix
+
 
 def gcrs2irts_matrix_b(t, eop):
     """
@@ -175,7 +217,9 @@ def gcrs2irts_matrix_b(t, eop):
         tt = tai + 32.184 / DAYSEC
 
         # UT1. */
-        dut1 = eop["UT1-UTC"][date] * (1 - day_frac) + eop["UT1-UTC"][date + 1] * day_frac
+        dut1 = (
+            eop["UT1-UTC"][date] * (1 - day_frac) + eop["UT1-UTC"][date + 1] * day_frac
+        )
         tut = day_frac + dut1 / DAYSEC
         # ut1 = date + tut
 
@@ -183,8 +227,12 @@ def gcrs2irts_matrix_b(t, eop):
         x, y, s = erfa.xys06a(djmjd0, tt)
 
         # X, Y offsets
-        dx06 = (eop["dX"][date] * (1 - day_frac) + eop["dX"][date + 1] * day_frac) * DAS2R
-        dy06 = (eop["dY"][date] * (1 - day_frac) + eop["dY"][date + 1] * day_frac) * DAS2R
+        dx06 = (
+            eop["dX"][date] * (1 - day_frac) + eop["dX"][date + 1] * day_frac
+        ) * DAS2R
+        dy06 = (
+            eop["dY"][date] * (1 - day_frac) + eop["dY"][date + 1] * day_frac
+        ) * DAS2R
 
         # Add CIP corrections. */
         x = x + dx06
@@ -199,7 +247,7 @@ def gcrs2irts_matrix_b(t, eop):
         # Form celestial-terrestrial matrix (no polar motion yet). */
         rc2ti = erfa.cr(rc2i)
         rc2ti = eraRZ(era, rc2ti)
-        #rc2ti = erfa.rz(era, rc2ti)
+        # rc2ti = erfa.rz(era, rc2ti)
 
         # Polar motion matrix (TIRS->ITRS, IERS 2003). */
         xp = (eop["x"][date] * (1 - day_frac) + eop["x"][date + 1] * day_frac) * DAS2R
@@ -213,6 +261,7 @@ def gcrs2irts_matrix_b(t, eop):
         matrix = matrix[0]
     return matrix
 
+
 @njit
 def lla2ecef(obs_lla, a=a, f=f, e=e):
     """
@@ -224,13 +273,13 @@ def lla2ecef(obs_lla, a=a, f=f, e=e):
     """
     # https://kb.osu.edu/bitstream/handle/1811/77986/Geom_Ref_Sys_Geodesy_2016.pdf?sequence=1&isAllowed=y
 
-    lat = obs_lla[0] # phi
-    lon = obs_lla[1] # lambda
-    alt = obs_lla[2] # h
-    N = a/np.sqrt(1-e**2*sin(lat)**2) # (eq 2.48)
-    x = (N + alt)*cos(lat)*cos(lon) # (eq 2.135)
-    y = (N + alt)*cos(lat)*sin(lon) # (eq 2.135)
-    z = (N*(1 - e**2) + alt)*sin(lat) # (eq 2.135)
+    lat = obs_lla[0]  # phi
+    lon = obs_lla[1]  # lambda
+    alt = obs_lla[2]  # h
+    N = a / np.sqrt(1 - e**2 * sin(lat) ** 2)  # (eq 2.48)
+    x = (N + alt) * cos(lat) * cos(lon)  # (eq 2.135)
+    y = (N + alt) * cos(lat) * sin(lon)  # (eq 2.135)
+    z = (N * (1 - e**2) + alt) * sin(lat)  # (eq 2.135)
     ecef = array([x, y, z])
     return ecef
 
@@ -249,15 +298,18 @@ def ecef2lla(ecef, a=a, b=b, f=f, e=e):
     Journal of Surveying Engineering. doi: 10.1061/(ASCE)0733-9453
     """
     x, y, z = ecef
-    r = sqrt(x ** 2 + y ** 2 + z ** 2)
-    E = sqrt(a ** 2 - b ** 2)
+    r = sqrt(x**2 + y**2 + z**2)
+    E = sqrt(a**2 - b**2)
 
     # eqn. 4a
-    u = sqrt(0.5 * (r ** 2 - E ** 2) + 0.5 * sqrt((r ** 2 - E ** 2) ** 2 + 4 * E ** 2 * z ** 2))
+    u = sqrt(
+        0.5 * (r**2 - E**2)
+        + 0.5 * sqrt((r**2 - E**2) ** 2 + 4 * E**2 * z**2)
+    )
     Q = hypot(x, y)
     huE = hypot(u, E)
     # eqn. 4b
-    if not(Q == 0 or u == 0):
+    if not (Q == 0 or u == 0):
         Beta = atan(huE / u * z / Q)
     else:
         if z >= 0:
@@ -265,7 +317,9 @@ def ecef2lla(ecef, a=a, b=b, f=f, e=e):
         else:
             Beta = -pi / 2
     # eqn. 13
-    eps = ((b * u - a * huE + E ** 2) * sin(Beta)) / (a * huE * 1 / cos(Beta) - E ** 2 * cos(Beta))
+    eps = ((b * u - a * huE + E**2) * sin(Beta)) / (
+        a * huE * 1 / cos(Beta) - E**2 * cos(Beta)
+    )
     Beta += eps
     # %% final output
     lat = atan(a / b * tan(Beta))
@@ -273,7 +327,7 @@ def ecef2lla(ecef, a=a, b=b, f=f, e=e):
     # eqn. 7
     alt = hypot(z - b * sin(Beta), Q - a * cos(Beta))
     # inside ellipsoid?
-    inside = x ** 2 / a ** 2 + y ** 2 / a ** 2 + z ** 2 / b ** 2 < 1
+    inside = x**2 / a**2 + y**2 / a**2 + z**2 / b**2 < 1
     if inside:
         alt = -alt
 
@@ -290,9 +344,9 @@ def aer2uvw(aer):
     # https://kb.osu.edu/bitstream/handle/1811/77986/Geom_Ref_Sys_Geodesy_2016.pdf?sequence=1&isAllowed=y
     # 2.2.2 Local Terrestrial Coordinates defined u, v, w
     az, el, r = aer
-    u = r*cos(el)*cos(az)       # (eq 2.148)
-    v = r*cos(el)*sin(az)       # (eq 2.148)
-    w = r*sin(el)               # (eq 2.148)
+    u = r * cos(el) * cos(az)  # (eq 2.148)
+    v = r * cos(el) * sin(az)  # (eq 2.148)
+    w = r * sin(el)  # (eq 2.148)
     uvw = array([u, v, w])
     return uvw
 
@@ -307,11 +361,11 @@ def uvw2aer(uvw):
     # https://kb.osu.edu/bitstream/handle/1811/77986/Geom_Ref_Sys_Geodesy_2016.pdf?sequence=1&isAllowed=y
     # 2.2.2 Local Terrestrial Coordinates defined u, v, w
     u, v, w = uvw
-    r = sqrt(sum(uvw**2))       # (eq 2.156)
-    az = atan2(v, u)            # (eq 2.154)
+    r = sqrt(sum(uvw**2))  # (eq 2.156)
+    az = atan2(v, u)  # (eq 2.154)
     if az < 0:
         az = az + tau
-    el = asin(w/r)              # (eq 2.155)
+    el = asin(w / r)  # (eq 2.155)
     aer = array([az, el, r])
     return aer
 
@@ -338,15 +392,19 @@ def ecef2aer(obs_lla, ecef_sat, ecef_obs):
 
     lat, lon = obs_lla[0], obs_lla[1]  # phi, lambda
 
-    trans_uvw_ecef = array([[-sin(lat)*cos(lon),    -sin(lon),  cos(lat)*cos(lon)],
-                            [-sin(lat)*sin(lon),    cos(lon),   cos(lat)*sin(lon)],
-                            [cos(lat),              0,          sin(lat)]])         # (eq 2.153)
-    delta_ecef = ecef_sat - ecef_obs        # (eq 2.149)
-    R_enz = trans_uvw_ecef.T @ delta_ecef   # (eq 2.153)
-    r = sqrt(sum(delta_ecef**2))            # (eq 2.156)
-    az = atan2(R_enz[1], (R_enz[0]))        # (eq 2.154)
+    trans_uvw_ecef = array(
+        [
+            [-sin(lat) * cos(lon), -sin(lon), cos(lat) * cos(lon)],
+            [-sin(lat) * sin(lon), cos(lon), cos(lat) * sin(lon)],
+            [cos(lat), 0, sin(lat)],
+        ]
+    )  # (eq 2.153)
+    delta_ecef = ecef_sat - ecef_obs  # (eq 2.149)
+    R_enz = trans_uvw_ecef.T @ delta_ecef  # (eq 2.153)
+    r = sqrt(sum(delta_ecef**2))  # (eq 2.156)
+    az = atan2(R_enz[1], (R_enz[0]))  # (eq 2.154)
     if az < 0:
-        az = az + 2*pi
-    el = asin(R_enz[2]/r)                   # (eq 2.155)
+        az = az + 2 * pi
+    el = asin(R_enz[2] / r)  # (eq 2.155)
     aer = array([az, el, r])
     return aer

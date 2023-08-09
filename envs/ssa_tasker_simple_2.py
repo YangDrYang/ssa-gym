@@ -362,7 +362,7 @@ class SSA_Tasker_Env(gym.Env):
             self.sigma_vel[:],
         ) = [np.nan] * 5
         self.actions[:], self.obs_taken[:], self.failed_filters_id, self.visibility = (
-            np.nan,
+            -1,
             False,
             [],
             [],
@@ -713,7 +713,7 @@ class SSA_Tasker_Env(gym.Env):
         ylim="max",
         title="default",
         save_path="default",
-        display=True,
+        display=False,
     ):
         """
         :param objects: For displaying specific objects
@@ -781,7 +781,7 @@ class SSA_Tasker_Env(gym.Env):
         axis=None,
         title="default",
         save_path="default",
-        display=True,
+        display=False,
         yscale="linear",
     ):
         s = time.time()
@@ -816,7 +816,7 @@ class SSA_Tasker_Env(gym.Env):
         e = time.time()
         self.runtime["plot_anees"] += e - s
 
-    def plot_actions(self, axis=0, title="default", save_path="default", display=True):
+    def plot_actions(self, axis=0, title="default", save_path="default", display=False):
         s = time.time()
         if title == "default":
             title = (
@@ -879,7 +879,7 @@ class SSA_Tasker_Env(gym.Env):
         self.runtime["all_true_obs"] += e - s
         return aer
 
-    def plot_visibility(self, save_path=None, display=True):
+    def plot_visibility(self, save_path=None, display=False):
         s = time.time()
         visibility = self.aer_true_all()[:, :, 1].T > self.obs_limit
         xlabel = "Time Step (" + str(self.dt) + " seconds per)"
@@ -892,7 +892,7 @@ class SSA_Tasker_Env(gym.Env):
         e = time.time()
         self.runtime["plot_visibility"] += e - s
 
-    def plot_regimes(self, save_path=None, display=True):
+    def plot_regimes(self, save_path=None, display=False):
         s = time.time()
         lla = np.array([ecef2lla(x[:3] @ self.trans_matrix[0]) for x in self.x_true[0]])
 
@@ -910,7 +910,7 @@ class SSA_Tasker_Env(gym.Env):
         e = time.time()
         self.runtime["plot_visibility"] += e - s
 
-    def plot_NIS(self, save_path=None, display=True):
+    def plot_NIS(self, save_path=None, display=False):
         NIS = []
         for i in range(1, self.n):
             NIS.append(
@@ -942,7 +942,7 @@ class SSA_Tasker_Env(gym.Env):
             display=display,
         )
 
-    def plot_innovation_bounds(self, ID=None, save_path=None, display=True):
+    def plot_innovation_bounds(self, ID=None, save_path=None, display=False):
         if ID is None:
             innovation = np.array(
                 [self.y[i, self.actions[i]] for i in range(1, self.n)]
@@ -1069,7 +1069,7 @@ class SSA_Tasker_Env(gym.Env):
             autocorrelations.append(np.array(aa))
         return autocorrelation, autocorrelations
 
-    def plot_autocorrelation(self, RSO_ID=None, save_path=None, display=True):
+    def plot_autocorrelation(self, RSO_ID=None, save_path=None, display=False):
         autocorrelation, autocorrelations = self.autocorrelation()
         if RSO_ID is None:
             RSO_ID = np.arange(0, self.m)
@@ -1237,13 +1237,22 @@ class SSA_Tasker_Env(gym.Env):
             columns=["95% CI"],
         )
 
-        Tests = innovation_bound_test.append(
-            normalized_innovation_squared_test.append(
-                innovation_autocorrelation_test.append(
-                    normalized_estimation_error_squared_test
-                )
-            )
+        # Tests = innovation_bound_test.append(
+        #     normalized_innovation_squared_test.append(
+        #         innovation_autocorrelation_test.append(
+        #             normalized_estimation_error_squared_test
+        #         )
+        #     )
+        # )
+        Tests = pd.concat(
+            [
+                innovation_bound_test,
+                normalized_innovation_squared_test,
+                innovation_autocorrelation_test,
+                normalized_estimation_error_squared_test,
+            ]
         )
+
         Tests = Tests.replace(np.nan, "", regex=True)
         return Tests
 

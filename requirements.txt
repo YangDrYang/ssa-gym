@@ -184,7 +184,6 @@ sphinxcontrib-jquery==4.1
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.4
 sphinxcontrib-serializinghtml==1.1.6
-ssa-gym==0.0.0
 stack-data==0.6.2
 statsmodels==0.14.0
 svgwrite==1.4.3

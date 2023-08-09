@@ -21,7 +21,7 @@ from envs.transformations import arcsec2rad
 from envs.farnocchia import fx_xyz_farnocchia as fx
 
 sample_orbits = np.load(
-    "/home/ash/PycharmProjects/ssa-gym/envs/1.5_hour_viz_20000_of_20000_sample_orbits_seed_0.npy"
+    "/Users/yangyang/Documents/GitHub/ssa-gym/envs/1.5_hour_viz_20000_of_20000_sample_orbits_seed_0.npy"
 )
 
 config = {
@@ -47,6 +47,8 @@ config = {
     "residual_z": residual_z,
     "msqrt": robust_cholesky,
     "orbits": sample_orbits,
+    "obs_returned": "flatten",
+    "reward_type": "jones",
 }
 
 env = gym.make("ssa_tasker_simple-v2", **{"config": config})

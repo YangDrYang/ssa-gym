@@ -1,4 +1,4 @@
-from gumnasium import gym
+import gymnasium as gym
 
 from stable_baselines import A2C
 import envs.ssa_tasker_simple_1

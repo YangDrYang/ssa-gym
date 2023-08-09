@@ -1,8 +1,9 @@
 import gymnasium as gym
 import numpy as np
 import os
+import tempfile
 
-import ray.utils
+import ray.rllib.utils
 
 from ray.rllib.models.preprocessors import get_preprocessor
 from ray.rllib.evaluation.sample_batch_builder import SampleBatchBuilder
@@ -22,7 +23,7 @@ from envs.transformations import arcsec2rad
 from agents import agent_visible_random
 
 sample_orbits = np.load(
-    "/home/ash/PycharmProjects/ssa-gym/envs/1.5_hour_viz_20000_of_20000_sample_orbits_seed_0.npy"
+    "/Users/yangyang/Documents/GitHub/ssa-gym/envs/1.5_hour_viz_20000_of_20000_sample_orbits_seed_0.npy"
 )
 
 env_config = {
@@ -51,10 +52,11 @@ env_config = {
 }
 
 if __name__ == "__main__":
+    temp_dir = tempfile.TemporaryDirectory()
+    output_dir = os.path.join(temp_dir.name, "agent_visible_random_10RSOs-out")
+
     batch_builder = SampleBatchBuilder()  # or MultiAgentSampleBatchBuilder
-    writer = JsonWriter(
-        os.path.join(ray.utils.get_user_temp_dir(), "agent_visible_random_10RSOs-out")
-    )
+    writer = JsonWriter(output_dir)
 
     # You normally wouldn't want to manually create sample batches if a
     # simulator is available, but let's do it anyways for example purposes:

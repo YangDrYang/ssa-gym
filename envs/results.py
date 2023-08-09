@@ -827,25 +827,48 @@ def map_plot(x_filter, x_true, trans_matrix, observer):
     ax.set_global()
     ax.coastlines()
 
+    # # Convert latitudes and longitudes to map coordinates
+    # x_filter, y_filter = ax(lon_filter, lat_filter)
+    # x_true, y_true = ax(lon_true, lat_true)
+
+    # # Plot predicted and actual locations
+    # ax.scatter(
+    #     x_filter,
+    #     y_filter,
+    #     marker="o",
+    #     label="Predicted Location",
+    #     transform=ccrs.PlateCarree(),
+    # )
+    # ax.scatter(
+    #     x_true,
+    #     y_true,
+    #     marker="x",
+    #     zorder=3,
+    #     label="Actual Location",
+    #     transform=ccrs.PlateCarree(),
+    # )
+
     # Convert latitudes and longitudes to map coordinates
-    x_filter, y_filter = ax(lon_filter, lat_filter)
-    x_true, y_true = ax(lon_true, lat_true)
+    xy_filter = ax.projection.transform_points(
+        ccrs.PlateCarree(), lon_filter, lat_filter
+    )
+    xy_true = ax.projection.transform_points(ccrs.PlateCarree(), lon_true, lat_true)
 
     # Plot predicted and actual locations
     ax.scatter(
-        x_filter,
-        y_filter,
+        xy_filter[:, 0],  # x-coordinates
+        xy_filter[:, 1],  # y-coordinates
         marker="o",
         label="Predicted Location",
-        transform=ccrs.PlateCarree(),
+        transform=None,  # No need to transform, as coordinates are already in map projection
     )
     ax.scatter(
-        x_true,
-        y_true,
+        xy_true[:, 0],  # x-coordinates
+        xy_true[:, 1],  # y-coordinates
         marker="x",
         zorder=3,
         label="Actual Location",
-        transform=ccrs.PlateCarree(),
+        transform=None,  # No need to transform, as coordinates are already in map projection
     )
 
     # Add annotation for the observation station
